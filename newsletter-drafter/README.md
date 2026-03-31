@@ -1,62 +1,91 @@
-# call-for-papers-help
+# Newsletter Drafter
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+Quarkus service that drafts and reviews newsletters using an agentic workflow.
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+## Prerequisites
 
-## Running the application in dev mode
+- Java 21+
+- Maven (or use `./mvnw`)
+- Docker (optional, for image builds)
+- kubectl
 
-You can run your application in dev mode that enables live coding using:
+## Run locally (dev mode)
 
-```shell script
+From this directory:
+
+```bash
 ./mvnw quarkus:dev
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
+Useful local endpoints:
 
-## Packaging and running the application
+- API: <http://localhost:8080>
+- Quarkus Dev UI: <http://localhost:8080/q/dev/>
+- Health: <http://localhost:8080/q/health>
+- Metrics: <http://localhost:8080/q/metrics>
 
-The application can be packaged using:
+## Build
 
-```shell script
-./mvnw package
+```bash
+./mvnw clean package
 ```
 
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
+Run packaged app:
 
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
-
-If you want to build an _über-jar_, execute the following command:
-
-```shell script
-./mvnw package -Dquarkus.package.jar.type=uber-jar
+```bash
+java -jar target/quarkus-app/quarkus-run.jar
 ```
 
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
+## Kubernetes deployment (manifests only)
 
-## Creating a native executable
+---
+**NOTE**
 
-You can create a native executable using:
+Before deploying, edit `../k8s/agentic-ai-manifests/newsletter-drafter.yaml` and set the `OPENAI_API_KEY` environment variable.
 
-```shell script
-./mvnw package -Dnative
+---
+
+
+This project uses plain Kubernetes manifests.
+
+The newsletter service image is already defined in the manifests. In normal usage, you only need to apply the manifests.
+
+
+Deploy all infrastructure and app resources:
+
+```bash
+kubectl apply -f ../k8s/agentic-ai-manifests
 ```
 
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
+Verify:
 
-```shell script
-./mvnw package -Dnative -Dquarkus.native.container-build=true
+```bash
+kubectl get pods
+kubectl get svc
 ```
 
-You can then execute your native executable with: `./target/call-for-papers-help-1.0.0-SNAPSHOT-runner`
+Port-forward:
 
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
+```bash
+kubectl port-forward -n default svc/durable-flow-demo 8080:80
+```
 
-## Provided Code
+Optional port-forward commands for observability and dependencies:
 
-### REST
+```bash
+kubectl port-forward -n default svc/grafana 3000:3000
+kubectl port-forward -n default svc/prometheus 9090:9090
+kubectl port-forward -n default svc/redis 6379:6379
+kubectl port-forward -n default svc/kafka 9092:9092
+```
 
-Easily start your REST Web Services
+Remove resources:
 
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+```bash
+kubectl delete -f ../k8s/agentic-ai-manifests
+```
+
+## Notes
+
+- For production, do not keep secrets in manifests. Use Kubernetes Secrets for values like `OPENAI_API_KEY`.
+- Service and dependency manifests live in `k8s/agentic-ai-manifests`.
